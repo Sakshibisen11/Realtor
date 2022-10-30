@@ -8,7 +8,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Header from "./components/Header";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-  
+import PrivateRoute from "./components/PrivateRoute";
 function App() {
   return (
     <>
@@ -16,14 +16,16 @@ function App() {
       <Header/>
       <Routes>
         <Route path="/" element={<Home/>}/>
+        <Route path="/profile" element={<PrivateRoute/>}>
         <Route path="/profile" element={<Profile/>}/>
+        </Route>
         <Route path="/sign-in" element={<Signin/>}/>
         <Route path="/sign-up" element={<Signup/>}/>
         <Route path="/forgot-password" element={<ForgotPassword/>}/>
         <Route path="/offers" element={<Offers/>}/>
       </Routes>
     </Router>
-    <ToastContainer>
+    
     <ToastContainer
 position="top-center"
 autoClose={5000}
@@ -36,7 +38,7 @@ draggable
 pauseOnHover
 theme="dark"
 />
-    </ToastContainer>
+    
     </>
   );
 }
