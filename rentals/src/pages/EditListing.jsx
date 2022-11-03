@@ -1,18 +1,19 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useState } from 'react'
 import Spinner from '../components/Spinner'
 import {toast} from 'react-toastify'
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getAuth } from 'firebase/auth';
 import {v4 as uuidv4} from "uuid"
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc,addDoc, collection, getDoc, limitToLast, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useNavigate } from 'react-router-dom';
-export default function CreateListing() {
+import { useNavigate, useParams } from 'react-router-dom';
+export default function EditListing() {
   const auth=getAuth();
   const navigate=useNavigate();
   const [geolocationEnabled,setgeolocationEnabled]=useState(true);
   const [loading,setLoading] =useState(false)
+  const [listing,setListing] =useState(null)
   const [formData,setformData]=useState({
         type:"sale",
         name:"",
@@ -152,20 +153,49 @@ export default function CreateListing() {
     delete formDataCopy.latitude;
     delete formDataCopy.longitude;
    !formDataCopy.offer && delete formDataCopy.discountedPrice;
-   //Adding to collection in firestore 
-   const docRef =await addDoc(collection(db,"listings"),formDataCopy)
+   //updating in firestore 
+   
+   const docRef =doc(db,"listings",params.listingId)
+   await updateDoc(docRef,formDataCopy)
    setLoading(false)
-   toast.success("Listing created")
+   toast.success("Listing edited")
    navigate(`/category/${formDataCopy.type}/${docRef.id}`)
     }
  //destructring 
     const {type,name,bedrooms,bathrooms,parking,furnished,address,description,offer,regularPrice,discountedPrice,images,latitude,longitude}=formData;
+const params=useParams()
+//check authorization for editing
+useEffect(()=>{
+    if(listing && listing.userRef!== auth.currentUser.uid){
+        toast.error("You cannot edit this listing")
+        navigate("/")
+    }
+}, auth.currentUser.uid,navigate,listing)
+useEffect(()=>{
+   setLoading(true); // see spinner until data is fetched
+   async function fetchListing(){
+    const docRef=doc(db,"listings",params.listingId)
+    const docSnap=await getDoc(docRef)
+    if(docSnap.exists()){
+        setListing(docSnap.data())
+        setformData({...docSnap.data()})
+        setLoading(false)
+    }
+    else{
+        navigate("/")
+        toast.error("Listing doesnot exist")
+    }
+   }
+   fetchListing()
+},[navigate,params.listingId])
+
+
   if(loading){
     return <Spinner/>
   }
     return (
     <main className='max-w-md px-2 mx-auto'>
-        <h1 className='text-3xl text-center mt-6 font-bold'>Create a Listing</h1>
+        <h1 className='text-3xl text-center mt-6 font-bold'>Edit a Listing</h1>
         <form onSubmit={onSubmit}>
         <p className='text-lg font-semibold mt-6'>Sell/Rent</p>
             <div className='flex' >
@@ -301,7 +331,7 @@ export default function CreateListing() {
             <p className='text-gray-600'>The first image will be the cover (max 6)</p>
             <input type="file" id="images" onChange={onChange} accept=".jpg,.png,.jpeg"  multiple required className='w-full px-3 py-1.5 text-gray-700 bg-white border-gray-300 rounded transition duration-150 ease-in-out focus:bg-white focus:border-slate-600'/>
             </div>
-            <button type="submit" className='mb-6 w-full px-7 py-3 bg-blue-600 text-white font-medium text-sm uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg tansition duration-150 ease-in-out'>Create Listing</button>
+            <button type="submit" className='mb-6 w-full px-7 py-3 bg-blue-600 text-white font-medium text-sm uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg tansition duration-150 ease-in-out'>Edit Listing</button>
         </form>
     </main>
   )
